@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gamescope Command Generator</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#7c3aed;--muted:#94a3b8;color-scheme:dark}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:linear-gradient(180deg,#071026 0%,#0b1220 100%);color:#e6eef6;padding:22px}
+    .wrap{max-width:980px;margin:0 auto}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    h1{font-size:18px;margin:0}
+    .lang{background:#ffffff;color:#000;border:1px solid rgba(0,0,0,0.12);padding:6px 8px;border-radius:8px}
+
+    .grid{display:grid;gap:12px}
+    .cols-3{grid-template-columns:1fr 1fr 1fr}
+    .card{background:rgba(255,255,255,0.03);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    label{font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:6px;color:var(--muted)}
+    .label-text{flex:1}
+    .help{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;background:rgba(255,255,255,0.06);color:var(--muted);font-size:12px;cursor:default;position:relative}
+    .help::after{content:attr(data-help);position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 8px);background:#00111b;color:#e6eef6;padding:8px;border-radius:6px;white-space:nowrap;font-size:12px;opacity:0;pointer-events:none;transition:0.12s;z-index:50}
+    .help:hover::after{opacity:1}
+
+    input[type=text], input[type=number], textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+
+    /* native select readability fix */
+    select.native-fix{appearance:auto;color:#000;background:#fff;padding:8px;border-radius:8px}
+
+    /* custom select styles */
+    .custom-select{position:relative}
+    .custom-select .sel-btn{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+    .custom-select .options{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;color:#000;border-radius:8px;max-height:220px;overflow:auto;border:1px solid rgba(0,0,0,0.12);z-index:40;display:none}
+    .custom-select .options .opt{padding:8px;cursor:pointer;border-bottom:1px solid rgba(0,0,0,0.04)}
+    .custom-select .options .opt:last-child{border-bottom:0}
+    .custom-select.open .options{display:block}
+
+    .row{display:flex;gap:8px;align-items:center}
+    .small{font-size:12px;color:var(--muted)}
+    button{background:var(--accent);border:none;padding:8px 12px;border-radius:8px;color:white;cursor:pointer}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit}
+    pre{white-space:pre-wrap;background:#00111b;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);overflow:auto}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .footer{margin-top:18px;color:#94a3b8;font-size:13px}
+    .top-note{color:#94a3b8;font-size:13px;margin-top:6px}
+
+    @media (max-width:900px){.cols-3{grid-template-columns:1fr}.wrap{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1 id="title">Gamescope Command Generator</h1>
+        <div class="top-note" id="subtitle">Generate gamescope commands quickly</div>
+      </div>
+      <div>
+        <select id="lang" class="lang" aria-label="language">
+          <option value="en">English</option>
+          <option value="tr">Türkçe</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="small" id="visual_label">Output (visual)</div>
+        <label><span class="label-text" data-key="label_output_width">Output width (-W)</span> <span class="help" data-help-en="Sets output width. Leave blank to skip." data-help-tr="Çıktı genişliğini ayarlar. Boş bırakılırsa eklenmez.">?</span></label>
+        <input id="outputWidth" type="number" placeholder="eg: 1920" />
+        <label><span class="label-text" data-key="label_output_height">Output height (-H)</span> <span class="help" data-help-en="Sets output height." data-help-tr="Çıktı yüksekliğini ayarlar.">?</span></label>
+        <input id="outputHeight" type="number" placeholder="eg: 1080" />
+        <label><span class="label-text" data-key="label_max_scale">Max scale (-m)</span> <span class="help" data-help-en="Maximum scale factor (decimal)." data-help-tr="Maksimum ölçek faktörü (ondalık).">?</span></label>
+        <input id="maxScale" type="number" step="0.1" placeholder="eg: 1.0" />
+      </div>
+
+      <div class="card">
+        <div class="small">Nested (game)</div>
+        <label><span class="label-text" data-key="label_nested_width">Nested width (-w)</span> <span class="help" data-help-en="Game (nested) width." data-help-tr="Oyun içi genişlik.">?</span></label>
+        <input id="nestedWidth" type="number" placeholder="eg: 1280" />
+        <label><span class="label-text" data-key="label_nested_height">Nested height (-h)</span> <span class="help" data-help-en="Game (nested) height." data-help-tr="Oyun içi yükseklik.">?</span></label>
+        <input id="nestedHeight" type="number" placeholder="eg: 960" />
+        <label><span class="label-text" data-key="label_nested_refresh">Nested refresh (-r)</span> <span class="help" data-help-en="Game refresh rate (fps)." data-help-tr="Oyun yenileme hızı (fps).">?</span></label>
+        <input id="nestedRefresh" type="number" step="0.1" placeholder="eg: 144.0" />
+      </div>
+
+      <div class="card">
+        <div class="small">Scaler / Filter</div>
+        <label><span class="label-text">Scaler (-S)</span> <span class="help" data-help-en="Upscaler type. Choose stretch for 4:3 stretch." data-help-tr="Yükseltici tipi. 4:3 stretch için stretch seçin.">?</span></label>
+        <div class="custom-select" data-for="scaler">
+          <div class="sel-btn" tabindex="0"><span id="sel-scaled">-- select --</span><span>▾</span></div>
+          <div class="options" id="opts-scaler"></div>
+        </div>
+
+        <label><span class="label-text">Filter (-F)</span> <span class="help" data-help-en="Filter (fsr/nis/pixel etc)." data-help-tr="Filtre (fsr/nis/pixel vb).">?</span></label>
+        <div class="custom-select" data-for="filter">
+          <div class="sel-btn" tabindex="0"><span id="sel-filter">-- select --</span><span>▾</span></div>
+          <div class="options" id="opts-filter"></div>
+        </div>
+
+        <label><span class="label-text">FSR sharpness (0-20)</span> <span class="help" data-help-en="FSR sharpness: 0 (max) -> 20 (min)." data-help-tr="FSR keskinliği: 0 (en sert) -> 20 (en yumuşak).">?</span></label>
+        <input id="fsrSharpness" type="number" min="0" max="20" placeholder="eg: 8" />
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="small">Flags</div>
+        <div class="row"><label><span class="label-text">-f (fullscreen)</span> <span class="help" data-help-en="Make nested window fullscreen." data-help-tr="Nested pencereyi fullscreen yapar.">?</span></label><input id="flagFullscreen" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">-g (grab)</span> <span class="help" data-help-en="Grab keyboard input." data-help-tr="Klavye girdisini yakalar.">?</span></label><input id="flagGrab" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--force-grab-cursor</span> <span class="help" data-help-en="Always use relative mouse mode." data-help-tr="Her zaman relatif mouse modunu kullanır.">?</span></label><input id="flagForceGrabCursor" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--adaptive-sync</span> <span class="help" data-help-en="Enable adaptive sync if available." data-help-tr="Adaptive sync varsa etkinleştirir.">?</span></label><input id="flagAdaptiveSync" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--immediate-flips</span> <span class="help" data-help-en="Enable immediate flips (may tear)." data-help-tr="Immediate flips açar (yırtılma olabilir).">?</span></label><input id="flagImmediateFlips" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--expose-wayland</span> <span class="help" data-help-en="Support Wayland clients using xdg-shell." data-help-tr="xdg-shell kullanan Wayland istemcilerini destekler.">?</span></label><input id="flagExposeWayland" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--force-windows-fullscreen</span> <span class="help" data-help-en="Force windows inside gamescope to nested size." data-help-tr="Oyun içindeki pencereleri nested boyutuna zorlar.">?</span></label><input id="flagForceWindowsFullscreen" type="checkbox"/></div>
+      </div>
+
+      <div class="card">
+        <div class="small">Backend / HDR / misc</div>
+        <label><span class="label-text">Backend (--backend)</span> <span class="help" data-help-en="Rendering backend (auto/drm/sdl...)." data-help-tr="Rendering backend (auto/drm/sdl...).">?</span></label>
+        <div class="custom-select" data-for="backend">
+          <div class="sel-btn" tabindex="0"><span id="sel-backend">-- select --</span><span>▾</span></div>
+          <div class="options" id="opts-backend"></div>
+        </div>
+        <div class="row" style="margin-top:8px"><label><span class="label-text">--hdr-enabled</span> <span class="help" data-help-en="Enable HDR output (if supported)." data-help-tr="HDR çıkışı etkinleştirir (destekliyorsa).">?</span></label><input id="hdrEnabled" type="checkbox"/></div>
+        <label><span class="label-text">Cursor path (--cursor)</span> <span class="help" data-help-en="Path to cursor image file." data-help-tr="Imleç resmi yolu.">?</span></label>
+        <input id="cursorPath" type="text" placeholder="eg: /home/user/cursor.png" />
+        <label><span class="label-text">Framerate limit (--framerate-limit)</span> <span class="help" data-help-en="Simple framerate divisor limit." data-help-tr="Basit fps sınırlayıcı (bölücü).">?</span></label>
+        <input id="framerateLimit" type="number" placeholder="eg: 60" />
+      </div>
+
+      <div class="card">
+        <div class="small">Debug & extra</div>
+        <div class="row"><label><span class="label-text">--debug-layers</span> <span class="help" data-help-en="Debug libliftoff layers." data-help-tr="libliftoff katmanlarını debug eder.">?</span></label><input id="debugLayers" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--mangoapp</span> <span class="help" data-help-en="Enable mangoapp (mangohud overlay)." data-help-tr="mangohud bindirmesini etkinleştirir.">?</span></label><input id="mangoapp" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--rt</span> <span class="help" data-help-en="Use realtime scheduling." data-help-tr="Gerçek zamanlı planlama kullanır.">?</span></label><input id="realtime" type="checkbox"/></div>
+        <label><span class="label-text">Custom extra flags (raw)</span> <span class="help" data-help-en="Write any raw flags here, they will be appended as-is." data-help_tr="Ham flagleri buraya yazın, aynen eklenecek.">?</span></label>
+        <input id="extraFlags" type="text" placeholder="eg: --generate-drm-mode=cvt" />
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="card">
+      <div class="controls">
+        <button id="gen">Generate</button>
+        <button id="preset43" class="btn-ghost">Preset 4:3 stretch</button>
+        <button id="presetUpscale" class="btn-ghost">Preset 720→1440 integer</button>
+        <button id="copy" class="btn-ghost">Copy</button>
+        <button id="clear" class="btn-ghost">Clear</button>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="card">
+      <div class="small" id="resLabel">Resulting command</div>
+      <pre id="result">gamescope -- %command%</pre>
+    </div>
+
+    <div class="footer">
+      <strong>Tip:</strong> Copy the generated command and paste it into Steam → Library → right-click the game → Properties → General → Launch Options. The string is shell-ready.
+      <br/>
+      <strong>İpucu:</strong> Oluşan komutu kopyalayıp Steam → Kütüphane → oyuna sağ tık → Properties → General → Launch Options alanına yapıştırın. Komut terminale yapıştırmaya hazırdır.
+    </div>
+  </div>
+
+<script>
+/* TRANSLATIONS */
+const T = {
+  en: {
+    title: 'Gamescope Command Generator', subtitle: 'Generate gamescope commands quickly',
+    select_placeholder: '-- select --', result_hint: 'Resulting command'
+  },
+  tr: {
+    title: 'Gamescope Komut Üretici', subtitle: 'Gamescope komutlarını hızlıca üretin',
+    select_placeholder: '-- seç --', result_hint: 'Oluşan komut'
+  }
+}
+
+const scalerOptions = ['auto','integer','fit','fill','stretch'];
+const filterOptions = ['linear','nearest','fsr','nis','pixel'];
+const backendOptions = ['auto','drm','sdl','openvr','headless','wayland'];
+
+function setLang(lang){
+  document.documentElement.lang = lang;
+  document.getElementById('title').textContent = T[lang].title;
+  document.getElementById('subtitle').textContent = T[lang].subtitle;
+  document.querySelectorAll('.sel-btn span:first-child').forEach(s=>s.textContent = T[lang].select_placeholder);
+  // update help tooltips from data-help-en/tr
+  document.querySelectorAll('.help').forEach(h=>{
+    const v = h.getAttribute('data-help-' + lang) || '';
+    h.setAttribute('data-help', v);
+  });
+  // update result label
+  document.getElementById('resLabel').textContent = T[lang].result_hint;
+}
+
+// custom select builder
+function buildCustomSelect(wrapper, options){
+  const forId = wrapper.getAttribute('data-for');
+  const btn = wrapper.querySelector('.sel-btn');
+  const optsEl = wrapper.querySelector('.options');
+  optsEl.innerHTML = '';
+  options.forEach(o=>{
+    const div = document.createElement('div'); div.className='opt'; div.tabIndex=0; div.textContent=o; div.dataset.val=o;
+    div.addEventListener('click', ()=>{ btn.querySelector('span').textContent=o; wrapper.classList.remove('open'); btn.dataset.value = o; });
+    div.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ div.click(); } });
+    optsEl.appendChild(div);
+  });
+  btn.addEventListener('click', ()=>{ wrapper.classList.toggle('open'); });
+  btn.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ wrapper.classList.toggle('open'); }});
+  // click outside
+  document.addEventListener('click',(e)=>{ if(!wrapper.contains(e.target)) wrapper.classList.remove('open'); });
+}
+
+// init
+(function(){
+  const langSel = document.getElementById('lang');
+  const initial = 'en';
+  langSel.value = initial; setLang(initial);
+  langSel.addEventListener('change', ()=> setLang(langSel.value));
+
+  buildCustomSelect(document.querySelector('.custom-select[data-for="scaler"]'), scalerOptions);
+  buildCustomSelect(document.querySelector('.custom-select[data-for="filter"]'), filterOptions);
+  buildCustomSelect(document.querySelector('.custom-select[data-for="backend"]'), backendOptions);
+
+  document.getElementById('preset43').addEventListener('click',()=>{
+    document.getElementById('nestedWidth').value='1280';
+    document.getElementById('nestedHeight').value='960';
+    document.querySelector('.custom-select[data-for="scaler"] .sel-btn span').textContent='stretch';
+    document.querySelector('.custom-select[data-for="scaler"] .sel-btn').dataset.value='stretch';
+    document.getElementById('flagFullscreen').checked=true;
+    document.getElementById('flagForceGrabCursor').checked=true;
+    document.getElementById('flagAdaptiveSync').checked=true;
+    document.getElementById('flagImmediateFlips').checked=true;
+    document.getElementById('nestedRefresh').value='144.0';
+    document.getElementById('result').textContent = buildCommand();
+  });
+
+  document.getElementById('presetUpscale').addEventListener('click',()=>{
+    document.getElementById('nestedHeight').value='720';
+    document.getElementById('outputHeight').value='1440';
+    document.querySelector('.custom-select[data-for="scaler"] .sel-btn span').textContent='integer';
+    document.querySelector('.custom-select[data-for="scaler"] .sel-btn').dataset.value='integer';
+    document.getElementById('result').textContent = buildCommand();
+  });
+
+  document.getElementById('gen').addEventListener('click',()=> document.getElementById('result').textContent = buildCommand());
+  document.getElementById('copy').addEventListener('click', async ()=>{
+    const txt = buildCommand();
+    try{ await navigator.clipboard.writeText(txt); alert('copied'); }catch(e){ const ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); alert('copied'); }
+  });
+  document.getElementById('clear').addEventListener('click',()=>{
+    document.querySelectorAll('input').forEach(i=>{ if(i.type==='checkbox') i.checked=false; else i.value=''});
+    document.querySelectorAll('.sel-btn span:first-child').forEach(s=>s.textContent = T[langSel.value].select_placeholder);
+    document.querySelectorAll('.sel-btn').forEach(b=>delete b.dataset.value);
+    document.getElementById('result').textContent = 'gamescope -- %command%';
+  });
+
+})();
+
+function pushIf(val, arr){ if(val===undefined||val===null||val==='') return; arr.push(val); }
+function buildCommand(){
+  const parts = ['gamescope'];
+  const W = document.getElementById('outputWidth').value.trim();
+  const H = document.getElementById('outputHeight').value.trim();
+  pushIf(W && `-W ${W}`, parts);
+  pushIf(H && `-H ${H}`, parts);
+  const m = document.getElementById('maxScale').value.trim(); if(m) parts.push(`-m ${m}`);
+  const nw = document.getElementById('nestedWidth').value.trim();
+  const nh = document.getElementById('nestedHeight').value.trim();
+  const nr = document.getElementById('nestedRefresh').value.trim();
+  pushIf(nw && `-w ${nw}`, parts);
+  pushIf(nh && `-h ${nh}`, parts);
+  pushIf(nr && `-r ${nr}`, parts);
+  const scalerVal = document.querySelector('.custom-select[data-for="scaler"] .sel-btn').dataset.value;
+  const filterVal = document.querySelector('.custom-select[data-for="filter"] .sel-btn').dataset.value;
+  const backendVal = document.querySelector('.custom-select[data-for="backend"] .sel-btn').dataset.value;
+  if(scalerVal) parts.push(`-S ${scalerVal}`);
+  if(filterVal) parts.push(`-F ${filterVal}`);
+  const sharp = document.getElementById('fsrSharpness').value.trim(); if(sharp) parts.push(`--fsr-sharpness ${sharp}`);
+  if(document.getElementById('flagFullscreen').checked) parts.push('-f');
+  if(document.getElementById('flagGrab').checked) parts.push('-g');
+  if(document.getElementById('flagForceGrabCursor').checked) parts.push('--force-grab-cursor');
+  if(document.getElementById('flagAdaptiveSync').checked) parts.push('--adaptive-sync');
+  if(document.getElementById('flagImmediateFlips').checked) parts.push('--immediate-flips');
+  if(document.getElementById('flagExposeWayland').checked) parts.push('--expose-wayland');
+  if(document.getElementById('flagForceWindowsFullscreen').checked) parts.push('--force-windows-fullscreen');
+  if(backendVal) parts.push(`--backend ${backendVal}`);
+  if(document.getElementById('hdrEnabled').checked) parts.push('--hdr-enabled');
+  const cursor = document.getElementById('cursorPath').value.trim(); if(cursor) parts.push(`--cursor ${cursor}`);
+  const fr = document.getElementById('framerateLimit').value.trim(); if(fr) parts.push(`--framerate-limit ${fr}`);
+  if(document.getElementById('debugLayers').checked) parts.push('--debug-layers');
+  if(document.getElementById('mangoapp').checked) parts.push('--mangoapp');
+  if(document.getElementById('realtime').checked) parts.push('--rt');
+  const extra = document.getElementById('extraFlags').value.trim(); if(extra) parts.push(extra);
+  const gameEl = document.getElementById('gameCommand');
+  const game = gameEl ? gameEl.value.trim() : '';
+  let assembled = parts.join(' ');
+  assembled += ' -- ' + (game ? game : '%command%');
+  return assembled;
+}
+</script>
+</body>
+</html>
