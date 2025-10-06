@@ -20,4 +20,4 @@ Select desired options or click a preset.
 
 Click Generate, then Copy.
 
-Paste into Steam → Library → right-click game → Properties → General → Launch Options — or paste in a terminal.
+Paste into Steam → Library → right-click game → Properties → General → Launch Options — and paste there.
