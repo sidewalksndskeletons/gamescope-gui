@@ -133,8 +133,8 @@
       <div class="card">
         <div class="small">Debug & extra</div>
         <div class="row"><label><span class="label-text">--debug-layers</span> <span class="help" data-help-en="Debug libliftoff layers." data-help-tr="libliftoff katmanlarını debug eder.">?</span></label><input id="debugLayers" type="checkbox"/></div>
-        <div class="row"><label><span class="label-text">--mangoapp</span> <span class="help" data-help-en="Enable mangoapp (mangohud overlay)." data-help-tr="mangohud bindirmesini etkinleştirir.">?</span></label><input id="mangoapp" type="checkbox"/></div>
-        <div class="row"><label><span class="label-text">--rt</span> <span class="help" data-help-en="Use realtime scheduling." data-help-tr="Gerçek zamanlı planlama kullanır.">?</span></label><input id="realtime" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--mangoapp</span> <span class="help" data-help-en="Enable mangoapp (mangohud overlay)." data-help_tr="mangohud bindirmesini etkinleştirir.">?</span></label><input id="mangoapp" type="checkbox"/></div>
+        <div class="row"><label><span class="label-text">--rt</span> <span class="help" data-help-en="Use realtime scheduling." data-help_tr="Gerçek zamanlı planlama kullanır.">?</span></label><input id="realtime" type="checkbox"/></div>
         <label><span class="label-text">Custom extra flags (raw)</span> <span class="help" data-help-en="Write any raw flags here, they will be appended as-is." data-help_tr="Ham flagleri buraya yazın, aynen eklenecek.">?</span></label>
         <input id="extraFlags" type="text" placeholder="eg: --generate-drm-mode=cvt" />
       </div>
@@ -197,22 +197,57 @@ function setLang(lang){
   document.getElementById('resLabel').textContent = T[lang].result_hint;
 }
 
-// custom select builder
+// custom select builder (robust)
 function buildCustomSelect(wrapper, options){
-  const forId = wrapper.getAttribute('data-for');
   const btn = wrapper.querySelector('.sel-btn');
   const optsEl = wrapper.querySelector('.options');
   optsEl.innerHTML = '';
+
+  // sayfa diline göre placeholder (tr -> Türkçe)
+  const placeholderText = document.documentElement.lang === 'tr' ? '-- seç --' : '-- select --';
+
+  // add a placeholder option that will act as a "de-select" when clicked
+  const placeholderDiv = document.createElement('div');
+  placeholderDiv.className = 'opt placeholder';
+  placeholderDiv.tabIndex = 0;
+  placeholderDiv.textContent = placeholderText;
+  placeholderDiv.dataset.val = '';
+  placeholderDiv.addEventListener('click', ()=>{
+    // clear selection
+    btn.querySelector('span:first-child').textContent = placeholderText;
+    delete btn.dataset.value;
+    wrapper.classList.remove('open');
+    setTimeout(()=> btn.focus(), 0);
+  });
+  placeholderDiv.addEventListener('keydown',(e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); placeholderDiv.click(); } if(e.key==='ArrowDown'){ e.preventDefault(); const next = placeholderDiv.nextElementSibling; if(next) next.focus(); }});
+  optsEl.appendChild(placeholderDiv);
+
   options.forEach(o=>{
     const div = document.createElement('div'); div.className='opt'; div.tabIndex=0; div.textContent=o; div.dataset.val=o;
-    div.addEventListener('click', ()=>{ btn.querySelector('span').textContent=o; wrapper.classList.remove('open'); btn.dataset.value = o; });
-    div.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ div.click(); } });
+    // click handler
+    div.addEventListener('click', ()=>{
+      const labelSpan = btn.querySelector('span:first-child');
+      labelSpan.textContent = o;
+      btn.dataset.value = o;
+      wrapper.classList.remove('open');
+      // restore focus to button so user can open it again with keyboard/mouse
+      setTimeout(()=> btn.focus(), 0);
+    });
+    // keyboard support for options
+    div.addEventListener('keydown',(e)=>{
+      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); div.click(); }
+      if(e.key==='ArrowDown'){ e.preventDefault(); if(div.nextElementSibling) div.nextElementSibling.focus(); }
+      if(e.key==='ArrowUp'){ e.preventDefault(); if(div.previousElementSibling) div.previousElementSibling.focus(); else btn.focus(); }
+    });
     optsEl.appendChild(div);
   });
-  btn.addEventListener('click', ()=>{ wrapper.classList.toggle('open'); });
-  btn.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ wrapper.classList.toggle('open'); }});
-  // click outside
-  document.addEventListener('click',(e)=>{ if(!wrapper.contains(e.target)) wrapper.classList.remove('open'); });
+  // button interactions
+  btn.addEventListener('click', (e)=>{ wrapper.classList.toggle('open'); });
+  btn.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); wrapper.classList.toggle('open'); }
+    if(e.key==='ArrowDown'){ e.preventDefault(); // open and focus first option
+      wrapper.classList.add('open'); const first = optsEl.querySelector('.opt'); if(first) first.focus(); }
+  });
 }
 
 // init
@@ -226,11 +261,18 @@ function buildCustomSelect(wrapper, options){
   buildCustomSelect(document.querySelector('.custom-select[data-for="filter"]'), filterOptions);
   buildCustomSelect(document.querySelector('.custom-select[data-for="backend"]'), backendOptions);
 
+  // only one document-level click listener to close open selects (fixes bug where selects stop opening)
+  document.addEventListener('click',(e)=>{
+    document.querySelectorAll('.custom-select').forEach(w=>{ if(!w.contains(e.target)) w.classList.remove('open'); });
+  });
+
   document.getElementById('preset43').addEventListener('click',()=>{
     document.getElementById('nestedWidth').value='1280';
     document.getElementById('nestedHeight').value='960';
-    document.querySelector('.custom-select[data-for="scaler"] .sel-btn span').textContent='stretch';
-    document.querySelector('.custom-select[data-for="scaler"] .sel-btn').dataset.value='stretch';
+    // set scaler label + dataset
+    const scalerBtn = document.querySelector('.custom-select[data-for="scaler"] .sel-btn');
+    scalerBtn.querySelector('span:first-child').textContent='stretch';
+    scalerBtn.dataset.value='stretch';
     document.getElementById('flagFullscreen').checked=true;
     document.getElementById('flagForceGrabCursor').checked=true;
     document.getElementById('flagAdaptiveSync').checked=true;
@@ -242,8 +284,9 @@ function buildCustomSelect(wrapper, options){
   document.getElementById('presetUpscale').addEventListener('click',()=>{
     document.getElementById('nestedHeight').value='720';
     document.getElementById('outputHeight').value='1440';
-    document.querySelector('.custom-select[data-for="scaler"] .sel-btn span').textContent='integer';
-    document.querySelector('.custom-select[data-for="scaler"] .sel-btn').dataset.value='integer';
+    const scalerBtn = document.querySelector('.custom-select[data-for="scaler"] .sel-btn');
+    scalerBtn.querySelector('span:first-child').textContent='integer';
+    scalerBtn.dataset.value='integer';
     document.getElementById('result').textContent = buildCommand();
   });
 
@@ -254,7 +297,8 @@ function buildCustomSelect(wrapper, options){
   });
   document.getElementById('clear').addEventListener('click',()=>{
     document.querySelectorAll('input').forEach(i=>{ if(i.type==='checkbox') i.checked=false; else i.value=''});
-    document.querySelectorAll('.sel-btn span:first-child').forEach(s=>s.textContent = T[langSel.value].select_placeholder);
+    const curLang = document.getElementById('lang').value;
+    document.querySelectorAll('.sel-btn span:first-child').forEach(s=>s.textContent = T[curLang].select_placeholder);
     document.querySelectorAll('.sel-btn').forEach(b=>delete b.dataset.value);
     document.getElementById('result').textContent = 'gamescope -- %command%';
   });
